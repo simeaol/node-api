@@ -1,0 +1,50 @@
+name: json file properties
+
+on:
+    workflow_call: 
+        inputs:
+            run:
+                description: 'Run workflow'
+                type: boolean
+                required: false
+                default: true
+    push: 
+        branches: 
+            - '*'
+            
+
+jobs:
+    read-json:
+        runs-on: ubuntu-22.04
+
+        strategy:
+            matrix:
+               hub: ["emea", "us"]
+               env: ["test", "e2e", "prod"]
+
+        steps:
+            - name: Checkout Config
+              uses: actions/checkout@v4
+
+            - name: get properties on ${{ matrix.hub }}-${{ matrix.env }}
+              id: json_properties
+              uses: zoexx/github-action-json-file-properties@release
+              with:
+                file_path: "package.json"
+
+            - run: |
+                echo ${{steps.json_properties.outputs.name}}
+                echo ${{steps.json_properties.outputs.version}}
+
+    lint:
+        needs: read-json
+        runs-on: ubuntu-latest
+        steps:
+            - name: Lint Code
+              run: npm run lint
+    test:
+        needs: read-json
+        runs-on: ubuntu-latest
+        steps:
+            - name: Test Code
+              run: npm test
